@@ -47,8 +47,18 @@ async function initCamera() {
 
 window.addEventListener('DOMContentLoaded', initCamera);
 
-function selectFrame(frameStyle) {
+function selectFrame(frameStyle, btnElement) {
   currentFrame = frameStyle;
+  
+  // Highlight tombol yang dipilih
+  document.querySelectorAll('.frame-btn').forEach(btn => {
+    btn.classList.remove('ring-4', 'ring-pink-400', 'scale-105');
+  });
+  if (btnElement) {
+    btnElement.classList.add('ring-4', 'ring-pink-400', 'scale-105');
+  }
+
+  // Jika foto sudah diambill, langsung re-render
   if (capturedPhotos.length === 3) {
     renderPhotoStrip();
   }
@@ -150,12 +160,87 @@ function renderPhotoStrip() {
   canvas.width = w;
   canvas.height = h;
 
-  if (currentFrame === 'denim-y2k') {
+  if (currentFrame === 'slank-rock') {
+    // --- TEMA SLANK OFFICIAL ---
+    ctx.fillStyle = '#0a0a0c';
+    ctx.fillRect(0, 0, w, h);
+
+    // Border Luar Ganda
+    ctx.strokeStyle = '#dc2626';
+    ctx.lineWidth = 4;
+    roundRect(ctx, 18, 18, w - 36, h - 36, 12, false, true);
+
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
+    roundRect(ctx, 24, 24, w - 48, h - 48, 8, false, true);
+
+    const photoW = 500;
+    const photoH = 375;
+    const startX = (w - photoW) / 2;
+    const startY = 100;
+    const gap = 35;
+
+    let loadedPhotos = 0;
+    capturedPhotos.forEach((src, idx) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => {
+        const y = startY + idx * (photoH + gap);
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 3;
+        roundRect(ctx, startX - 3, y - 3, photoW + 6, photoH + 6, 4, false, true);
+
+        ctx.drawImage(img, startX, y, photoW, photoH);
+        loadedPhotos++;
+
+        if (loadedPhotos === capturedPhotos.length) {
+          const footerY = startY + 3 * (photoH + gap) + 15;
+          const slankLogo = new Image();
+          slankLogo.src = 'slank-logo.png';
+
+          // Fungsi menggambar fallback jika gambar tidak ada
+          const drawSlankFallback = () => {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '900 64px "Impact", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.strokeStyle = '#dc2626';
+            ctx.lineWidth = 6;
+            ctx.strokeText('S L A N K', w / 2, footerY + 80);
+            ctx.fillText('S L A N K', w / 2, footerY + 80);
+
+            ctx.fillStyle = '#a1a1aa';
+            ctx.font = '700 18px sans-serif';
+            ctx.fillText('PLUR • PEACE LOVE UNITY RESPECT', w / 2, footerY + 130);
+
+            finishRender();
+          };
+
+          slankLogo.onload = () => {
+            const logoW = 260;
+            const logoH = logoW * (slankLogo.height / slankLogo.width);
+            ctx.drawImage(slankLogo, (w - logoW) / 2, footerY + 10, logoW, logoH);
+
+            ctx.fillStyle = '#a1a1aa';
+            ctx.font = '700 18px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('PLUR • PEACE LOVE UNITY RESPECT', w / 2, footerY + logoH + 35);
+
+            finishRender();
+          };
+
+          slankLogo.onerror = () => {
+            drawSlankFallback();
+          };
+        }
+      };
+    });
+
+  } else if (currentFrame === 'denim-y2k') {
     // --- TEMA DENIM Y2K ---
     ctx.fillStyle = '#46688c';
     ctx.fillRect(0, 0, w, h);
 
-    // Garis tekstur jeans
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
     ctx.lineWidth = 2;
     for (let i = -h; i < w + h; i += 8) {
@@ -165,7 +250,6 @@ function renderPhotoStrip() {
       ctx.stroke();
     }
 
-    // Jahitan putih luar
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 3;
     ctx.setLineDash([10, 8]);
@@ -198,7 +282,6 @@ function renderPhotoStrip() {
         loadedPhotos++;
 
         if (loadedPhotos === capturedPhotos.length) {
-          // Stiker E S H
           const letters = ['E', 'S', 'H'];
           const colors = ['#f472b6', '#3b82f6', '#facc15'];
           letters.forEach((let, i) => {
@@ -212,12 +295,10 @@ function renderPhotoStrip() {
             ctx.fillText(let, 45, 186 + i * 40);
           });
 
-          // Stiker ✨
           ctx.fillStyle = '#fef08a';
           ctx.font = '32px sans-serif';
           ctx.fillText('✨', w - 50, 120);
 
-          // Stiker 💖
           ctx.fillStyle = '#f472b6';
           ctx.strokeStyle = '#ffffff';
           ctx.lineWidth = 4;
@@ -226,7 +307,6 @@ function renderPhotoStrip() {
           ctx.font = 'bold 36px sans-serif';
           ctx.fillText('💖', 80, 568);
 
-          // Stiker Angka
           const numbers = ['13', '01', '09'];
           numbers.forEach((num, i) => {
             ctx.fillStyle = '#fef08a';
@@ -236,11 +316,9 @@ function renderPhotoStrip() {
             ctx.fillText(num, w - 62, 521 + i * 45);
           });
 
-          // Hati 🤍
           ctx.font = '50px sans-serif';
           ctx.fillText('🤍', w - 90, h - 230);
 
-          // Footer
           const footerY = startY + 3 * (photoH + gap) + 10;
           ctx.fillStyle = '#cbd5e1';
           ctx.font = 'bold 22px sans-serif';
