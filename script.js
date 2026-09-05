@@ -155,7 +155,7 @@ async function initCamera() {
 }
 
 // ==========================================
-// 5. PROSES FOTO & RENDER DENGAN KANVAS 1200
+// 5. PROSES FOTO & RENDER (URUTAN LAYER DIBALIK)
 // ==========================================
 async function startPhotoProcess() {
   capturedPhotos = [];
@@ -251,43 +251,39 @@ function renderPhotoStrip() {
   canvas.width = w;
   canvas.height = h;
 
-  ctx.fillStyle = currentFrameData.bg;
-  ctx.fillRect(0, 0, w, h);
-
-  const photoW = 380;
-  const photoH = 265;
-  const startX = (w - photoW) / 2;
-  const startY = 195; 
-  const gap = 38;     
-
-  let loadedPhotos = 0;
-  capturedPhotos.forEach((src, idx) => {
-    const img = new Image();
-    img.src = src;
-    img.onload = () => {
-      const y = startY + idx * (photoH + gap);
-      ctx.drawImage(img, startX, y, photoW, photoH);
-      loadedPhotos++;
-
-      if (loadedPhotos === capturedPhotos.length) {
-        drawFrameOverlay(w, h);
-      }
-    };
-  });
-}
-
-function drawFrameOverlay(w, h) {
+  // 1. Gambar frame di latar belakang terlebih dahulu
   const frameImg = new Image();
   frameImg.crossOrigin = "anonymous";
   frameImg.src = currentFrameData.frame_image_url;
   
   frameImg.onload = () => {
     ctx.drawImage(frameImg, 0, 0, w, h);
-    finishRender();
+
+    // 2. Timpa foto-foto di atas area lubang frame
+    const photoW = 380;
+    const photoH = 265;
+    const startX = (w - photoW) / 2;
+    const startY = 195; 
+    const gap = 38;     
+
+    let loadedPhotos = 0;
+    capturedPhotos.forEach((src, idx) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => {
+        const y = startY + idx * (photoH + gap);
+        ctx.drawImage(img, startX, y, photoW, photoH);
+        loadedPhotos++;
+
+        if (loadedPhotos === capturedPhotos.length) {
+          finishRender();
+        }
+      };
+    });
   };
   
   frameImg.onerror = () => {
-    console.warn("Gagal memuat gambar frame.");
+    alert("Gagal memuat gambar frame dari Supabase.");
     finishRender();
   };
 }
