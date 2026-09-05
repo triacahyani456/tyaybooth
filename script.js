@@ -1,5 +1,5 @@
 // ==========================================
-// 1. FIREBASE CONFIG
+// 1. FIREBASE & SUPABASE CONFIG
 // ==========================================
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
@@ -16,56 +16,146 @@ if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
   storage = firebase.storage();
 }
 
+// Inisialisasi Supabase Client via CDN Global (window.supabase)
+const supabaseUrl = 'https://rumifogmharcbeircfkb.supabase.co';
+const supabaseKey = 'sb_publishable_-sOHWB3HMq6-B1p6lrLo0A_pagYED9Q';
+const sbClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
 const video = document.getElementById('webcam');
 const canvas = document.getElementById('photo-strip-canvas');
 const ctx = canvas.getContext('2d');
 let capturedPhotos = [];
-let currentFrame = 'cute-pink';
+let currentFrameId = 'postal-frame';
+let currentFrameData = null;
+let frameDatabase = [];
 
 // ==========================================
-// 2. AKSES KAMERA HP & LAPTOP
+// 2. LOAD FRAME LANGSUNG (TANPA RIBET DATABASE)
 // ==========================================
+async function loadFramesFromSupabase() {
+  frameDatabase = [
+    {
+      id: 'postal-frame',
+      category: 'vintage',
+      name: 'Classical Music Stamp',
+      uses: '1,240 uses',
+      bg: '#fbf9f1',
+      accent: '#b91c1c',
+      frame_image_url: 'https://rumifogmharcbeircfkb.supabase.co/storage/v1/object/public/frames/aeriyha_pindown.io_1788588171.jpg'
+    }
+  ];
+  renderFrameGrid('all');
+}
+
+// Render Grid Katalog Card
+function renderFrameGrid(filter = 'all') {
+  const grid = document.getElementById('frame-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  const filtered = filter === 'all' ? frameDatabase : frameDatabase.filter(f => f.category === filter);
+
+  filtered.forEach(frame => {
+    const card = document.createElement('div');
+    card.className = "bg-white border border-slate-200/80 rounded-2xl p-4 flex flex-col justify-between hover:shadow-lg transition-all duration-200 cursor-pointer group";
+    
+    card.innerHTML = `
+      <div class="w-full h-56 rounded-xl flex flex-col items-center justify-center p-3 relative overflow-hidden shadow-inner border border-slate-100" style="background-color: ${frame.bg};">
+        <div class="absolute top-3 left-3 bg-black/40 backdrop-blur-md text-white text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase">
+          ${frame.category}
+        </div>
+        
+        <div class="w-16 h-40 bg-white shadow-md rounded-md p-1.5 flex flex-col gap-1.5 justify-between border border-black/5 group-hover:scale-105 transition-transform">
+          <div class="w-full h-10 bg-slate-200 rounded-sm"></div>
+          <div class="w-full h-10 bg-slate-200 rounded-sm"></div>
+          <div class="w-full h-10 bg-slate-200 rounded-sm"></div>
+        </div>
+      </div>
+
+      <div class="mt-4 flex flex-col gap-1">
+        <div class="flex items-center justify-between">
+          <h3 class="font-serif font-bold text-slate-900 text-sm group-hover:text-rose-500 transition">${frame.name}</h3>
+          <span class="text-[10px] text-slate-400 font-medium">${frame.uses}</span>
+        </div>
+        <div class="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
+          <span class="text-[11px] text-slate-500 font-medium">3 photos</span>
+          <span class="text-[11px] font-bold text-slate-900 group-hover:underline">Gunakan &rarr;</span>
+        </div>
+      </div>
+    `;
+
+    card.onclick = () => selectAndProceed(frame);
+    grid.appendChild(card);
+  });
+}
+
+function filterFrames(category, event) {
+  document.querySelectorAll('.category-btn').forEach(b => {
+    b.classList.remove('bg-slate-900', 'text-white', 'shadow-sm');
+    b.classList.add('bg-white', 'border', 'border-slate-200', 'text-slate-600');
+  });
+  if(event && event.currentTarget) {
+    event.currentTarget.classList.remove('bg-white', 'border', 'border-slate-200', 'text-slate-600');
+    event.currentTarget.classList.add('bg-slate-900', 'text-white', 'shadow-sm');
+  }
+  renderFrameGrid(category);
+}
+
+// ==========================================
+// 3. MODAL BUAT TEMPLATE KUSTOM
+// ==========================================
+function openTemplateModal() {
+  document.getElementById('template-modal').classList.remove('hidden');
+}
+
+function closeTemplateModal() {
+  document.getElementById('template-modal').classList.add('hidden');
+}
+
+function handleCreateTemplate(event) {
+  event.preventDefault();
+  alert("Fitur kustom template disederhanakan. Frame utamamu sudah siap dipakai!");
+  closeTemplateModal();
+}
+
+// ==========================================
+// 4. NAVIGASI & KAMERA
+// ==========================================
+function selectAndProceed(frame) {
+  currentFrameId = frame.id;
+  currentFrameData = frame;
+
+  document.getElementById('active-frame-name').innerText = frame.name;
+  document.getElementById('view-select-frame').classList.add('hidden');
+  document.getElementById('view-camera').classList.remove('hidden');
+
+  initCamera();
+}
+
+function backToFrameSelection() {
+  document.getElementById('view-camera').classList.add('hidden');
+  document.getElementById('view-select-frame').classList.remove('hidden');
+  
+  if (video.srcObject) {
+    video.srcObject.getTracks().forEach(track => track.stop());
+  }
+}
+
 async function initCamera() {
   try {
-    const constraints = {
-      video: {
-        facingMode: "user",
-        width: { ideal: 1280 },
-        height: { ideal: 960 }
-      },
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 960 } },
       audio: false
-    };
-
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    });
     video.srcObject = stream;
     await video.play();
   } catch (err) {
-    console.error("Camera Error:", err);
-    alert("Gagal mengaktifkan kamera! Pastikan memberi izin kamera & web dijalankan via HTTPS / Live Server.");
-  }
-}
-
-window.addEventListener('DOMContentLoaded', initCamera);
-
-function selectFrame(frameStyle, btnElement) {
-  currentFrame = frameStyle;
-  
-  // Highlight tombol yang dipilih
-  document.querySelectorAll('.frame-btn').forEach(btn => {
-    btn.classList.remove('ring-4', 'ring-pink-400', 'scale-105');
-  });
-  if (btnElement) {
-    btnElement.classList.add('ring-4', 'ring-pink-400', 'scale-105');
-  }
-
-  // Jika foto sudah diambill, langsung re-render
-  if (capturedPhotos.length === 3) {
-    renderPhotoStrip();
+    alert("Gagal mengaktifkan kamera!");
   }
 }
 
 // ==========================================
-// 3. LOGIKA FOTO & COUNTDOWN
+// 5. PROSES FOTO & RENDER DENGAN KANVAS 1200
 // ==========================================
 async function startPhotoProcess() {
   capturedPhotos = [];
@@ -118,401 +208,130 @@ function triggerFlash() {
 
 function capturePhoto() {
   const tempCanvas = document.createElement('canvas');
-  const targetW = 800;
-  const targetH = 600;
+  const targetW = 380;
+  const targetH = 265;
   tempCanvas.width = targetW;
   tempCanvas.height = targetH;
-  
   const tempCtx = tempCanvas.getContext('2d');
-  
+
+  const vW = video.videoWidth || 1280;
+  const vH = video.videoHeight || 720;
+  const targetRatio = targetW / targetH;
+  const videoRatio = vW / vH;
+
+  let sourceW, sourceH, sourceX, sourceY;
+
+  if (videoRatio > targetRatio) {
+    sourceH = vH;
+    sourceW = vH * targetRatio;
+    sourceX = (vW - sourceW) / 2;
+    sourceY = 0;
+  } else {
+    sourceW = vW;
+    sourceH = vW / targetRatio;
+    sourceX = 0;
+    sourceY = (vH - sourceH) / 2;
+  }
+
   tempCtx.translate(targetW, 0);
   tempCtx.scale(-1, 1);
 
-  const vW = video.videoWidth || targetW;
-  const vH = video.videoHeight || targetH;
-  const videoAspect = vW / vH;
-  const targetAspect = targetW / targetH;
+  tempCtx.drawImage(
+    video,
+    sourceX, sourceY, sourceW, sourceH,
+    0, 0, targetW, targetH
+  );
 
-  let sx, sy, sWidth, sHeight;
-
-  if (videoAspect > targetAspect) {
-    sHeight = vH;
-    sWidth = vH * targetAspect;
-    sx = (vW - sWidth) / 2;
-    sy = 0;
-  } else {
-    sWidth = vW;
-    sHeight = vW / targetAspect;
-    sx = 0;
-    sy = (vH - sHeight) / 2;
-  }
-
-  tempCtx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, targetW, targetH);
   capturedPhotos.push(tempCanvas.toDataURL('image/png'));
 }
 
-// ==========================================
-// 4. RENDER CANVAS PHOTO STRIP
-// ==========================================
 function renderPhotoStrip() {
   const w = 600;
-  const h = 1800;
+  const h = 1200;
   canvas.width = w;
   canvas.height = h;
 
-  if (currentFrame === 'slank-rock') {
-    // --- TEMA SLANK OFFICIAL ---
-    ctx.fillStyle = '#0a0a0c';
-    ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = currentFrameData.bg;
+  ctx.fillRect(0, 0, w, h);
 
-    // Border Luar Ganda
-    ctx.strokeStyle = '#dc2626';
-    ctx.lineWidth = 4;
-    roundRect(ctx, 18, 18, w - 36, h - 36, 12, false, true);
+  const photoW = 380;
+  const photoH = 265;
+  const startX = (w - photoW) / 2;
+  const startY = 195; 
+  const gap = 38;     
 
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1;
-    roundRect(ctx, 24, 24, w - 48, h - 48, 8, false, true);
+  let loadedPhotos = 0;
+  capturedPhotos.forEach((src, idx) => {
+    const img = new Image();
+    img.src = src;
+    img.onload = () => {
+      const y = startY + idx * (photoH + gap);
+      ctx.drawImage(img, startX, y, photoW, photoH);
+      loadedPhotos++;
 
-    const photoW = 500;
-    const photoH = 375;
-    const startX = (w - photoW) / 2;
-    const startY = 100;
-    const gap = 35;
-
-    let loadedPhotos = 0;
-    capturedPhotos.forEach((src, idx) => {
-      const img = new Image();
-      img.src = src;
-      img.onload = () => {
-        const y = startY + idx * (photoH + gap);
-
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 3;
-        roundRect(ctx, startX - 3, y - 3, photoW + 6, photoH + 6, 4, false, true);
-
-        ctx.drawImage(img, startX, y, photoW, photoH);
-        loadedPhotos++;
-
-        if (loadedPhotos === capturedPhotos.length) {
-          const footerY = startY + 3 * (photoH + gap) + 15;
-          const slankLogo = new Image();
-          slankLogo.src = 'slank-logo.png';
-
-          // Fungsi menggambar fallback jika gambar tidak ada
-          const drawSlankFallback = () => {
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '900 64px "Impact", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.strokeStyle = '#dc2626';
-            ctx.lineWidth = 6;
-            ctx.strokeText('S L A N K', w / 2, footerY + 80);
-            ctx.fillText('S L A N K', w / 2, footerY + 80);
-
-            ctx.fillStyle = '#a1a1aa';
-            ctx.font = '700 18px sans-serif';
-            ctx.fillText('PLUR • PEACE LOVE UNITY RESPECT', w / 2, footerY + 130);
-
-            finishRender();
-          };
-
-          slankLogo.onload = () => {
-            const logoW = 260;
-            const logoH = logoW * (slankLogo.height / slankLogo.width);
-            ctx.drawImage(slankLogo, (w - logoW) / 2, footerY + 10, logoW, logoH);
-
-            ctx.fillStyle = '#a1a1aa';
-            ctx.font = '700 18px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('PLUR • PEACE LOVE UNITY RESPECT', w / 2, footerY + logoH + 35);
-
-            finishRender();
-          };
-
-          slankLogo.onerror = () => {
-            drawSlankFallback();
-          };
-        }
-      };
-    });
-
-  } else if (currentFrame === 'denim-y2k') {
-    // --- TEMA DENIM Y2K ---
-    ctx.fillStyle = '#46688c';
-    ctx.fillRect(0, 0, w, h);
-
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-    ctx.lineWidth = 2;
-    for (let i = -h; i < w + h; i += 8) {
-      ctx.beginPath();
-      ctx.moveTo(i, 0);
-      ctx.lineTo(i + h, h);
-      ctx.stroke();
-    }
-
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
-    ctx.setLineDash([10, 8]);
-    roundRect(ctx, 20, 20, w - 40, h - 40, 20, false, true);
-    ctx.setLineDash([]);
-
-    const photoW = 460;
-    const photoH = 350;
-    const startX = (w - photoW) / 2;
-    const startY = 160;
-    const gap = 60;
-
-    let loadedPhotos = 0;
-    capturedPhotos.forEach((src, idx) => {
-      const img = new Image();
-      img.src = src;
-      img.onload = () => {
-        const y = startY + idx * (photoH + gap);
-
-        ctx.fillStyle = '#2d4561';
-        roundRect(ctx, startX - 12, y - 12, photoW + 24, photoH + 24, 16, true, false);
-
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([8, 6]);
-        roundRect(ctx, startX - 6, y - 6, photoW + 12, photoH + 12, 12, false, true);
-        ctx.setLineDash([]);
-
-        ctx.drawImage(img, startX, y, photoW, photoH);
-        loadedPhotos++;
-
-        if (loadedPhotos === capturedPhotos.length) {
-          const letters = ['E', 'S', 'H'];
-          const colors = ['#f472b6', '#3b82f6', '#facc15'];
-          letters.forEach((let, i) => {
-            ctx.fillStyle = colors[i];
-            ctx.beginPath();
-            ctx.arc(45, 180 + i * 40, 16, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 18px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(let, 45, 186 + i * 40);
-          });
-
-          ctx.fillStyle = '#fef08a';
-          ctx.font = '32px sans-serif';
-          ctx.fillText('✨', w - 50, 120);
-
-          ctx.fillStyle = '#f472b6';
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 4;
-          roundRect(ctx, 40, 520, 80, 70, 20, true, true);
-          ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 36px sans-serif';
-          ctx.fillText('💖', 80, 568);
-
-          const numbers = ['13', '01', '09'];
-          numbers.forEach((num, i) => {
-            ctx.fillStyle = '#fef08a';
-            roundRect(ctx, w - 85, 500 + i * 45, 45, 30, 6, true, false);
-            ctx.fillStyle = '#1e293b';
-            ctx.font = 'bold 16px monospace';
-            ctx.fillText(num, w - 62, 521 + i * 45);
-          });
-
-          ctx.font = '50px sans-serif';
-          ctx.fillText('🤍', w - 90, h - 230);
-
-          const footerY = startY + 3 * (photoH + gap) + 10;
-          ctx.fillStyle = '#cbd5e1';
-          ctx.font = 'bold 22px sans-serif';
-          ctx.textAlign = 'left';
-          ctx.fillText('Locker 17', 60, footerY);
-
-          ctx.font = 'bold italic 48px "Pacifico", cursive, sans-serif';
-          ctx.fillStyle = '#f472b6';
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 6;
-          ctx.strokeText('Sweetheart!', w / 2, footerY + 60);
-          ctx.fillText('Sweetheart!', w / 2, footerY + 60);
-
-          ctx.fillStyle = '#1e293b';
-          roundRect(ctx, 60, footerY + 80, 160, 36, 8, true, false);
-          ctx.fillStyle = '#ffffff';
-          ctx.font = 'bold 16px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('#Tyayabooth', 140, footerY + 104);
-
-          finishRender();
-        }
-      };
-    });
-
-  } else if (currentFrame === 'train-ticket') {
-    // --- TEMA TRAIN TICKET ---
-    const maroonColor = '#6b1d22';
-    const creamColor = '#fdfbf2';
-
-    ctx.fillStyle = creamColor;
-    ctx.fillRect(0, 0, w, h);
-
-    ctx.strokeStyle = maroonColor;
-    ctx.lineWidth = 10;
-    roundRect(ctx, 30, 30, w - 60, h - 60, 40, false, true);
-
-    ctx.fillStyle = maroonColor;
-    ctx.font = 'bold 24px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('THE', w / 2, 90);
-    ctx.font = '900 48px sans-serif';
-    ctx.fillText('SNAP EXPRESS', w / 2, 140);
-    ctx.font = '40px sans-serif';
-    ctx.fillText('🚂', w / 2, 190);
-
-    ctx.beginPath();
-    ctx.moveTo(w / 2 - 100, 210);
-    ctx.lineTo(w / 2 + 100, 210);
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    const photoW = 480;
-    const photoH = 380;
-    const startX = (w - photoW) / 2;
-    const startY = 240;
-    const gap = 30;
-
-    let loadedCount = 0;
-    capturedPhotos.forEach((src, idx) => {
-      const img = new Image();
-      img.src = src;
-      img.onload = () => {
-        const y = startY + idx * (photoH + gap);
-
-        ctx.strokeStyle = maroonColor;
-        ctx.lineWidth = 8;
-        roundRect(ctx, startX - 4, y - 4, photoW + 8, photoH + 8, 12, false, true);
-
-        ctx.drawImage(img, startX, y, photoW, photoH);
-        loadedCount++;
-
-        if (loadedCount === capturedPhotos.length) {
-          const footerY = startY + 3 * (photoH + gap) + 20;
-
-          ctx.fillStyle = maroonColor;
-          ctx.font = 'bold 36px sans-serif';
-          ctx.fillText('TRAIN TICKET', w / 2, footerY);
-
-          ctx.font = '24px sans-serif';
-          ctx.fillText('★ ★ ★', w / 2, footerY + 35);
-
-          const boxW = 340;
-          const boxH = 60;
-          const boxX = (w - boxW) / 2;
-          const boxY = footerY + 55;
-
-          ctx.strokeStyle = maroonColor;
-          ctx.lineWidth = 6;
-          roundRect(ctx, boxX, boxY, boxW, boxH, 20, false, true);
-
-          ctx.font = '900 24px sans-serif';
-          ctx.fillText('TYAYABOOTH • SEAT A33', w / 2, boxY + 38);
-
-          finishRender();
-        }
-      };
-    });
-
-  } else {
-    // --- FRAME STANDAR ---
-    if (currentFrame === 'cute-pink') ctx.fillStyle = '#fbcfe8';
-    else if (currentFrame === 'retro-black') ctx.fillStyle = '#1e293b';
-    else ctx.fillStyle = '#ffffff';
-
-    ctx.fillRect(0, 0, w, h);
-
-    const photoW = 520;
-    const photoH = 390;
-    const startX = 40;
-    const startY = 120;
-    const gap = 40;
-
-    let loadedCount = 0;
-    capturedPhotos.forEach((src, idx) => {
-      const img = new Image();
-      img.src = src;
-      img.onload = () => {
-        const y = startY + idx * (photoH + gap);
-        ctx.drawImage(img, startX, y, photoW, photoH);
-        loadedCount++;
-
-        if (loadedCount === capturedPhotos.length) {
-          ctx.font = 'bold 42px "Pacifico", cursive, sans-serif';
-          ctx.fillStyle = currentFrame === 'retro-black' ? '#ffffff' : '#ec4899';
-          ctx.textAlign = 'center';
-          ctx.fillText('Tyayabooth ✨', w / 2, h - 80);
-
-          finishRender();
-        }
-      };
-    });
-  }
+      if (loadedPhotos === capturedPhotos.length) {
+        drawFrameOverlay(w, h);
+      }
+    };
+  });
 }
 
-function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + width - radius, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-  ctx.lineTo(x + width, y + height - radius);
-  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-  ctx.lineTo(x + radius, y + height);
-  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
-  if (fill) ctx.fill();
-  if (stroke) ctx.stroke();
+function drawFrameOverlay(w, h) {
+  const frameImg = new Image();
+  frameImg.crossOrigin = "anonymous";
+  frameImg.src = currentFrameData.frame_image_url;
+  
+  frameImg.onload = () => {
+    ctx.drawImage(frameImg, 0, 0, w, h);
+    finishRender();
+  };
+  
+  frameImg.onerror = () => {
+    console.warn("Gagal memuat gambar frame.");
+    finishRender();
+  };
 }
 
 function finishRender() {
   const dataUrl = canvas.toDataURL('image/png');
-  const previewContainer = document.getElementById('preview-container');
-  previewContainer.innerHTML = `<img src="${dataUrl}" class="w-full h-auto rounded-xl shadow-md" />`;
-
+  document.getElementById('preview-container').innerHTML = `<img src="${dataUrl}" class="w-full h-auto rounded-xl shadow-md border border-slate-100" />`;
   document.getElementById('download-link').href = dataUrl;
   document.getElementById('result-actions').classList.remove('hidden');
 }
 
 // ==========================================
-// 5. UPLOAD TO FIREBASE & QR CODE
+// 6. FIREBASE & QR CODE
 // ==========================================
 async function uploadToFirebase() {
   if (!storage) {
-    alert("Isi `firebaseConfig` di bagian atas script.js dengan milikmu terlebih dahulu!");
+    alert("Isi firebaseConfig di script.js terlebih dahulu.");
     return;
   }
 
   const btn = document.getElementById('btn-upload');
-  btn.innerText = "⏳ Mengunggah...";
+  btn.innerText = "Mengunggah...";
   btn.disabled = true;
 
   try {
     const dataUrl = canvas.toDataURL('image/png');
     const fileName = `tyayabooth_${Date.now()}.png`;
     const storageRef = storage.ref(`photobooth/${fileName}`);
-    
     await storageRef.putString(dataUrl, 'data_url');
     const downloadURL = await storageRef.getDownloadURL();
 
     const qrContainer = document.getElementById('qrcode');
     qrContainer.innerHTML = '';
-    new QRCode(qrContainer, {
-      text: downloadURL,
-      width: 140,
-      height: 140
-    });
+    new QRCode(qrContainer, { text: downloadURL, width: 130, height: 130 });
 
     document.getElementById('qr-box').classList.remove('hidden');
-    btn.innerText = "✅ Berhasil Diunggah!";
+    btn.innerText = "Berhasil Diunggah";
   } catch (error) {
     alert("Gagal upload: " + error.message);
-    btn.innerText = "☁️ Upload & Buat QR Code";
+    btn.innerText = "Upload & Buat QR Code";
     btn.disabled = false;
   }
 }
+
+window.addEventListener('DOMContentLoaded', () => {
+  loadFramesFromSupabase();
+});

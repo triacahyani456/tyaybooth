@@ -1,112 +1,144 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="h-full">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tyayabooth - Web Photo Booth</title>
+  <title>Tyayabooth — Aesthetic Web Photo Booth</title>
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- CSS External -->
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Custom Stylesheet -->
   <link rel="stylesheet" href="style.css">
 
-  <!-- Firebase SDKs (v10 Compat) -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
   
   <!-- QR Code Generator Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-</head>
-<body class="min-h-screen text-slate-800 flex flex-col items-center p-4 md:p-8">
 
-  <!-- Header -->
-  <header class="text-center mb-6 pt-2">
-    <h1 class="brand-title text-4xl md:text-6xl text-pink-500 drop-shadow-md leading-relaxed">Tyayabooth</h1>
-    <p class="text-slate-600 font-medium mt-1">Ayo abadikan momen manismu di sini! ✨</p>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            serif: ['"Playfair Display"', 'serif'],
+          },
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-full bg-[#f8f9fa] text-slate-700 flex flex-col items-center justify-between p-4 md:p-8 antialiased selection:bg-slate-200 selection:text-slate-900">
+
+  <!-- Header Navigasi -->
+  <header class="w-full max-w-7xl flex items-center justify-between bg-white px-6 py-4 rounded-2xl border border-slate-200/80 shadow-sm mb-8">
+    <div class="flex items-center gap-8">
+      <h1 class="font-serif text-2xl font-bold text-slate-900 tracking-tight">
+        Tyaya<span class="text-rose-500 italic font-normal">booth</span>
+      </h1>
+      <nav class="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-600">
+        <span class="text-slate-900 border-b-2 border-slate-900 pb-1">Booth Katalog</span>
+        <span class="text-slate-400">Software</span>
+        <span class="text-slate-400">Creators</span>
+      </nav>
+    </div>
+    <div class="flex items-center gap-3">
+      <button onclick="openTemplateModal()" class="bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition hover:bg-slate-800 shadow-sm">
+        + Buat Template
+      </button>
+    </div>
   </header>
 
-  <!-- Main Container -->
-  <main class="w-full max-w-4xl grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- ================= VIEW 1: PILIH FRAME (KATALOG) ================= -->
+  <main id="view-select-frame" class="w-full max-w-7xl flex flex-col items-center">
+    
+    <div class="w-full flex items-center justify-between flex-wrap gap-4 mb-8">
+      <div>
+        <h2 class="font-serif text-2xl font-bold text-slate-900">Koleksi Template Booth</h2>
+        <p class="text-xs text-slate-500 mt-1">Pilih desain frame estetik ala Pinterest dan Gen Z untuk sesimu</p>
+      </div>
+      
+      <div class="flex flex-wrap gap-2">
+        <button onclick="filterFrames('all')" class="category-btn active px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 text-white transition shadow-sm">Semua</button>
+        <button onclick="filterFrames('pinterest')" class="category-btn px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition">Pinterest</button>
+        <button onclick="filterFrames('y2k')" class="category-btn px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition">Y2K & Denim</button>
+        <button onclick="filterFrames('grunge')" class="category-btn px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition">Dark Grunge</button>
+        <button onclick="filterFrames('vintage')" class="category-btn px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition">Vintage</button>
+      </div>
+    </div>
 
-    <!-- Area Kamera & Control (Kiri) -->
-    <div class="lg:col-span-2 flex flex-col items-center">
-      <div class="glass-card p-4 rounded-3xl shadow-xl w-full flex flex-col items-center relative">
-        
-        <!-- Live Webcam View -->
-        <div class="relative w-full aspect-[4/3] bg-slate-900 rounded-2xl overflow-hidden shadow-inner flex items-center justify-center">
+    <!-- Grid Katalog Card Frame -->
+    <div id="frame-grid" class="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-12">
+      <!-- Generated via Javascript -->
+    </div>
+  </main>
+
+
+  <!-- ================= VIEW 2: KAMERA & PHOTOBOOTH ================= -->
+  <main id="view-camera" class="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-6 items-start hidden">
+
+    <div class="lg:col-span-12 flex items-center justify-between bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-sm">
+      <button onclick="backToFrameSelection()" class="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1.5 transition">
+        &larr; Kembali ke Katalog Frame
+      </button>
+      <div class="text-xs font-medium text-slate-500">
+        Template Aktif: <span id="active-frame-name" class="font-bold text-rose-500">Minimalist Clean</span>
+      </div>
+    </div>
+
+    <div class="lg:col-span-7 flex flex-col items-center w-full">
+      <div class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm w-full flex flex-col items-center relative">
+        <div class="relative w-full aspect-[4/3] bg-slate-950 rounded-2xl overflow-hidden shadow-inner flex items-center justify-center">
           <video id="webcam" autoplay playsinline class="w-full h-full object-cover -scale-x-100"></video>
           
-          <!-- Countdown Overlay -->
-          <div id="countdown-overlay" class="absolute inset-0 bg-black/40 hidden flex items-center justify-center z-10">
-            <span id="countdown-text" class="text-8xl font-black text-white animate-ping">3</span>
+          <div id="countdown-overlay" class="absolute inset-0 bg-slate-950/60 backdrop-blur-sm hidden flex items-center justify-center z-10">
+            <span id="countdown-text" class="text-8xl font-serif font-bold text-white">3</span>
           </div>
 
-          <!-- Flash Kamera -->
           <div id="flash-effect" class="absolute inset-0 bg-white opacity-0 pointer-events-none transition-opacity duration-150 z-20"></div>
         </div>
 
-        <!-- Pilihan Frame/Theme -->
-        <div class="w-full mt-4">
-          <label class="block text-sm font-semibold text-slate-700 mb-2">Pilih Frame Favorite Kamu:</label>
-          <div class="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3" id="frame-selector">
-            <button onclick="selectFrame('cute-pink')" class="frame-btn border-2 border-pink-400 bg-pink-50 hover:bg-pink-100 p-2 rounded-xl text-xs font-bold text-pink-600 flex flex-col items-center gap-1 transition">
-              <span class="w-4 h-4 rounded-full bg-pink-400"></span> Cute Pink
-            </button>
-            <button onclick="selectFrame('classic-white')" class="frame-btn border-2 border-slate-200 bg-white hover:bg-slate-50 p-2 rounded-xl text-xs font-bold text-slate-700 flex flex-col items-center gap-1 transition">
-              <span class="w-4 h-4 rounded-full bg-slate-300"></span> Classic White
-            </button>
-            <button onclick="selectFrame('retro-black')" class="frame-btn border-2 border-slate-700 bg-slate-900 hover:bg-slate-800 p-2 rounded-xl text-xs font-bold text-white flex flex-col items-center gap-1 transition">
-              <span class="w-4 h-4 rounded-full bg-slate-700"></span> Retro Dark
-            </button>
-            <button onclick="selectFrame('train-ticket')" class="frame-btn border-2 border-amber-800 bg-amber-50 hover:bg-amber-100 p-2 rounded-xl text-xs font-bold text-amber-900 flex flex-col items-center gap-1 transition">
-              <span class="w-4 h-4 rounded-full bg-amber-800"></span> Train Ticket 🚂
-            </button>
-            <button onclick="selectFrame('denim-y2k')" class="frame-btn border-2 border-indigo-600 bg-indigo-50 hover:bg-indigo-100 p-2 rounded-xl text-xs font-bold text-indigo-700 flex flex-col items-center gap-1 transition">
-              <span class="w-4 h-4 rounded-full bg-indigo-600"></span> Denim Y2K 👖
-            </button>
-            <button onclick="selectFrame('slank-rock')" class="frame-btn border-2 border-zinc-700 bg-zinc-900 hover:bg-zinc-800 p-2 rounded-xl text-xs font-bold text-zinc-100 flex flex-col items-center gap-1 transition">
-              <span class="w-4 h-4 rounded-full bg-red-600"></span> Slank Official ✌️
-            </button>
-          </div>
-        </div>
-
-        <!-- Tombol Capture -->
         <div class="mt-6 w-full">
-          <button id="btn-snap" onclick="startPhotoProcess()" class="w-full bg-gradient-to-r from-pink-500 to-rose-400 hover:from-pink-600 hover:to-rose-500 text-white font-bold py-3.5 px-6 rounded-2xl shadow-lg hover:shadow-pink-300/50 transition transform active:scale-95 text-center text-lg">
-            📸 Mulai Foto (3 Jepretan)
+          <button id="btn-snap" onclick="startPhotoProcess()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-4 px-6 rounded-2xl shadow-md transition-all active:scale-[0.98] text-center text-sm">
+            Mulai Sesi Foto (3 Jepretan)
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Area Preview & Export (Kanan) -->
-    <div class="flex flex-col items-center w-full">
-      <div class="glass-card p-4 rounded-3xl shadow-xl w-full flex flex-col items-center min-h-[400px]">
-        <h2 class="font-bold text-lg text-slate-700 mb-3">Hasil Photo Strip 🎞️</h2>
+    <div class="flex flex-col items-center w-full lg:col-span-5">
+      <div class="bg-white border border-slate-200 p-5 rounded-3xl shadow-sm w-full flex flex-col items-center justify-between min-h-[480px]">
+        <div class="w-full text-center">
+          <h2 class="font-serif font-bold text-lg text-slate-800 mb-1">Photo Strip Preview</h2>
+          <p class="text-xs text-slate-400">Hasil strip siap diunduh</p>
+        </div>
         
-        <!-- Canvas Tersembunyi -->
         <canvas id="photo-strip-canvas" class="hidden"></canvas>
         
-        <!-- Container Preview -->
-        <div id="preview-container" class="w-48 min-h-[300px] border-2 border-dashed border-slate-300 rounded-2xl flex flex-col items-center justify-center p-2 text-center text-slate-400">
-          <svg class="w-10 h-10 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-          <span class="text-xs">Foto kamu akan muncul di sini</span>
+        <div id="preview-container" class="w-48 sm:w-52 min-h-[320px] border-2 border-dashed border-slate-200 bg-slate-50 rounded-2xl flex flex-col items-center justify-center p-4 text-center text-slate-400 my-auto">
+          <span class="text-xs font-medium text-slate-400">Hasil jepretan akan muncul di sini</span>
         </div>
 
-        <!-- Tombol Aksi -->
-        <div id="result-actions" class="w-full mt-4 flex flex-col items-center gap-3 hidden">
-          <a id="download-link" download="tyayabooth-strip.png" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-4 rounded-xl text-center text-sm transition">
-            ⬇️ Download Foto
+        <div id="result-actions" class="w-full mt-6 flex flex-col items-center gap-3 hidden">
+          <a id="download-link" download="tyayabooth-strip.png" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 px-4 rounded-xl text-center text-sm transition shadow-sm">
+            Download Foto
           </a>
           
-          <button id="btn-upload" onclick="uploadToFirebase()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 px-4 rounded-xl text-center text-sm transition">
-            ☁️ Upload & Buat QR Code
+          <button id="btn-upload" onclick="uploadToFirebase()" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-semibold py-3 px-4 rounded-xl text-center text-sm transition shadow-sm">
+            Upload & Generate QR Code
           </button>
 
-          <div id="qr-box" class="flex flex-col items-center p-3 bg-white rounded-xl shadow-inner border border-slate-100 hidden w-full">
-            <p class="text-xs font-semibold text-slate-600 mb-2">Scan untuk download di HP:</p>
-            <div id="qrcode" class="p-1"></div>
+          <div id="qr-box" class="flex flex-col items-center p-4 bg-slate-50 rounded-2xl shadow-sm border border-slate-100 hidden w-full mt-2">
+            <p class="text-xs font-semibold text-slate-500 mb-2">Scan QR untuk unduh:</p>
+            <div id="qrcode" class="p-1 bg-white rounded-lg border border-slate-100"></div>
           </div>
         </div>
 
@@ -114,6 +146,58 @@
     </div>
 
   </main>
+
+
+  <!-- ================= MODAL BUAT TEMPLATE ================= -->
+  <div id="template-modal" class="fixed inset-0 bg-slate-950/50 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-xl border border-slate-100">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-serif font-bold text-lg text-slate-900">Buat Template Kustom</h3>
+        <button onclick="closeTemplateModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg">&times;</button>
+      </div>
+
+      <form id="create-template-form" onsubmit="handleCreateTemplate(event)" class="flex flex-col gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Template</label>
+          <input type="text" id="tpl-name" required placeholder="Contoh: My Aesthetic Vibe" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-slate-900">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Kategori</label>
+          <select id="tpl-category" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-slate-900 bg-white">
+            <option value="pinterest">Pinterest</option>
+            <option value="y2k">Y2K & Denim</option>
+            <option value="grunge">Dark Grunge</option>
+            <option value="vintage">Vintage</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Warna Background</label>
+            <input type="color" id="tpl-bg" value="#fdfbf7" class="w-full h-10 rounded-xl border border-slate-200 p-1 cursor-pointer bg-white">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Warna Aksen / Border</label>
+            <input type="color" id="tpl-accent" value="#57534e" class="w-full h-10 rounded-xl border border-slate-200 p-1 cursor-pointer bg-white">
+          </div>
+        </div>
+
+        <button type="submit" class="w-full bg-slate-900 text-white font-semibold py-3 rounded-xl text-xs mt-2 hover:bg-slate-800 transition">
+          Simpan & Gunakan Template
+        </button>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- Footer -->
+  <footer class="mt-12 text-center text-xs text-slate-400 font-medium">
+    Tyayabooth &copy; 2026
+  </footer>
+
+  <!-- Supabase UMD CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- JS External -->
   <script src="script.js"></script>
