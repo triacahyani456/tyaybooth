@@ -155,7 +155,7 @@ async function initCamera() {
 }
 
 // ==========================================
-// 5. PROSES FOTO & RENDER (URUTAN LAYER DIBALIK)
+// 5. PROSES FOTO & RENDER (UKURAN FOTO PAS DI DALAM KOTAK)
 // ==========================================
 async function startPhotoProcess() {
   capturedPhotos = [];
@@ -208,8 +208,8 @@ function triggerFlash() {
 
 function capturePhoto() {
   const tempCanvas = document.createElement('canvas');
-  const targetW = 380;
-  const targetH = 265;
+  const targetW = 340;
+  const targetH = 230;
   tempCanvas.width = targetW;
   tempCanvas.height = targetH;
   const tempCtx = tempCanvas.getContext('2d');
@@ -251,39 +251,46 @@ function renderPhotoStrip() {
   canvas.width = w;
   canvas.height = h;
 
-  // 1. Gambar frame di latar belakang terlebih dahulu
+  ctx.clearRect(0, 0, w, h);
+
+  // Ukuran foto diperkecil & dipaskan di dalam kotak putih frame
+  const photoW = 340;
+  const photoH = 230;
+  const startX = (w - photoW) / 2;
+  const startY = 210; 
+  const gap = 53;     
+
+  let loadedPhotos = 0;
+  
+  // 1. Gambar foto di lapisan bawah
+  capturedPhotos.forEach((src, idx) => {
+    const img = new Image();
+    img.src = src;
+    img.onload = () => {
+      const y = startY + idx * (photoH + gap);
+      ctx.drawImage(img, startX, y, photoW, photoH);
+      loadedPhotos++;
+
+      // 2. Timpa frame di atas foto setelah semua foto termuat
+      if (loadedPhotos === capturedPhotos.length) {
+        drawFrameOverlay(w, h);
+      }
+    };
+  });
+}
+
+function drawFrameOverlay(w, h) {
   const frameImg = new Image();
   frameImg.crossOrigin = "anonymous";
   frameImg.src = currentFrameData.frame_image_url;
   
   frameImg.onload = () => {
     ctx.drawImage(frameImg, 0, 0, w, h);
-
-    // 2. Timpa foto-foto di atas area lubang frame
-    const photoW = 380;
-    const photoH = 265;
-    const startX = (w - photoW) / 2;
-    const startY = 195; 
-    const gap = 38;     
-
-    let loadedPhotos = 0;
-    capturedPhotos.forEach((src, idx) => {
-      const img = new Image();
-      img.src = src;
-      img.onload = () => {
-        const y = startY + idx * (photoH + gap);
-        ctx.drawImage(img, startX, y, photoW, photoH);
-        loadedPhotos++;
-
-        if (loadedPhotos === capturedPhotos.length) {
-          finishRender();
-        }
-      };
-    });
+    finishRender();
   };
   
   frameImg.onerror = () => {
-    alert("Gagal memuat gambar frame dari Supabase.");
+    console.warn("Gagal memuat gambar frame.");
     finishRender();
   };
 }
