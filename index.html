@@ -68,7 +68,7 @@
       
       <div class="flex flex-wrap gap-2">
         <button onclick="filterFrames('all')" class="category-btn active px-4 py-2 rounded-xl text-xs font-semibold bg-slate-900 text-white transition shadow-sm">Semua</button>
-        <button onclick="filterFrames('pinterest')" class="category-btn px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition">Pinterest</button>
+        <button onclick="filterFrames('pinterest')" class="category-btn px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition">Music</button>
         <button onclick="filterFrames('y2k')" class="category-btn px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition">Y2K & Denim</button>
         <button onclick="filterFrames('grunge')" class="category-btn px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition">Dark Grunge</button>
         <button onclick="filterFrames('vintage')" class="category-btn px-4 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition">Vintage</button>
@@ -132,6 +132,10 @@
             Download Foto
           </a>
           
+          <button onclick="retakePhotos()" class="w-full bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 font-semibold py-3 px-4 rounded-xl text-center text-sm transition shadow-sm">
+            Foto Ulang (Retake)
+          </button>
+          
           <button id="btn-upload" onclick="uploadToFirebase()" class="w-full bg-rose-500 hover:bg-rose-600 text-white font-semibold py-3 px-4 rounded-xl text-center text-sm transition shadow-sm">
             Upload & Generate QR Code
           </button>
@@ -165,7 +169,7 @@
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Kategori</label>
           <select id="tpl-category" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-slate-900 bg-white">
-            <option value="pinterest">Pinterest</option>
+            <option value="pinterest">Music</option>
             <option value="y2k">Y2K & Denim</option>
             <option value="grunge">Dark Grunge</option>
             <option value="vintage">Vintage</option>
